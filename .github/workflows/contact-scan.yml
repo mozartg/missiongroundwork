@@ -23,7 +23,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: pip
 
       - name: Install exitlight and browser
         run: |
@@ -47,8 +46,13 @@ jobs:
 
       - name: Show results
         if: always()
+        shell: bash
         run: |
-          find research/contact-scan-results -type f -maxdepth 1 -print -exec cat {} \;
+          if [ -d research/contact-scan-results ]; then
+            find research/contact-scan-results -maxdepth 1 -type f -print -exec cat {} \;
+          else
+            echo "No result directory was created."
+          fi
 
       - name: Upload scan report
         if: always()
