@@ -1,0 +1,31 @@
+name: Validate automation foundation
+
+on:
+  pull_request:
+    paths:
+      - 'automation/**'
+      - '.github/workflows/validate-automation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create validation environment
+        run: |
+          cp automation/.env.example automation/.env
+          sed -i 's/replace-with-a-long-random-string/validation-only-key/' automation/.env
+          sed -i 's/replace-with-a-long-random-password/validation-only-password/' automation/.env
+      - name: Validate Docker Compose
+        working-directory: automation
+        run: docker compose config --quiet
+      - name: Check committed secrets
+        run: |
+          if grep -RInE '(BEGIN PRIVATE KEY|AIza[0-9A-Za-z_-]{20,}|ghp_[0-9A-Za-z]{20,})' automation --exclude='.env.example'; then
+            echo 'Potential secret detected.'
+            exit 1
+          fi
