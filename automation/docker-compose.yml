@@ -1,0 +1,70 @@
+name: mission-groundwork-automation
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    ports: ["5678:5678"]
+    environment:
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:?Set N8N_ENCRYPTION_KEY}
+      - N8N_SECURE_COOKIE=false
+    volumes: ["n8n_data:/home/node/.n8n", "./data:/data"]
+    restart: unless-stopped
+
+  baserow:
+    image: baserow/baserow:latest
+    ports: ["8000:80"]
+    volumes: ["baserow_data:/baserow/data"]
+    restart: unless-stopped
+
+  activepieces:
+    profiles: ["extended"]
+    image: activepieces/activepieces:latest
+    ports: ["8081:80"]
+    volumes: ["activepieces_data:/root/.activepieces"]
+    restart: unless-stopped
+
+  nocodb:
+    profiles: ["extended"]
+    image: nocodb/nocodb:latest
+    ports: ["8082:8080"]
+    volumes: ["nocodb_data:/usr/app/data"]
+    restart: unless-stopped
+
+  flowise:
+    profiles: ["ai-local"]
+    image: flowiseai/flowise:latest
+    ports: ["3002:3000"]
+    volumes: ["flowise_data:/root/.flowise"]
+    restart: unless-stopped
+
+  ollama:
+    profiles: ["ai-local"]
+    image: ollama/ollama:latest
+    ports: ["11434:11434"]
+    volumes: ["ollama_data:/root/.ollama"]
+    restart: unless-stopped
+
+  plunk-db:
+    profiles: ["email"]
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: plunk
+      POSTGRES_PASSWORD: ${PLUNK_DB_PASSWORD:?Set PLUNK_DB_PASSWORD}
+      POSTGRES_DB: plunk
+    volumes: ["plunk_db:/var/lib/postgresql/data"]
+
+  plunk:
+    profiles: ["email"]
+    image: useplunk/plunk:latest
+    ports: ["3003:3000"]
+    environment:
+      DATABASE_URL: postgresql://plunk:${PLUNK_DB_PASSWORD}@plunk-db:5432/plunk
+    depends_on: [plunk-db]
+
+volumes:
+  n8n_data: {}
+  baserow_data: {}
+  activepieces_data: {}
+  nocodb_data: {}
+  flowise_data: {}
+  ollama_data: {}
+  plunk_db: {}

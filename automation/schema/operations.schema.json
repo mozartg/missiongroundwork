@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Mission GroundWork Outreach Operations",
+  "type": "object",
+  "properties": {
+    "lead": {
+      "type": "object",
+      "required": ["lead_id", "first_name", "organization", "email", "status", "suppressed"],
+      "properties": {
+        "lead_id": {"type": "string", "minLength": 1},
+        "first_name": {"type": "string", "minLength": 1},
+        "last_name": {"type": "string"},
+        "role": {"type": "string"},
+        "organization": {"type": "string", "minLength": 1},
+        "website": {"type": "string"},
+        "email": {"type": "string", "format": "email"},
+        "source_url": {"type": "string"},
+        "fit_signal": {"type": "string"},
+        "observed_issue": {"type": "string"},
+        "service_lane": {"type": "string"},
+        "confidence": {"type": "integer", "minimum": 0, "maximum": 10},
+        "status": {"enum": ["new", "qualified", "drafted", "contacted", "replied", "closed", "rejected"]},
+        "suppressed": {"type": "boolean"}
+      },
+      "additionalProperties": true
+    },
+    "outreach": {
+      "type": "object",
+      "required": ["outreach_id", "lead_id", "subject", "body", "status", "unsubscribe"],
+      "properties": {
+        "outreach_id": {"type": "string", "minLength": 1},
+        "lead_id": {"type": "string", "minLength": 1},
+        "sequence_step": {"type": "integer", "minimum": 1, "maximum": 3},
+        "subject": {"type": "string", "minLength": 1},
+        "body": {"type": "string", "minLength": 1},
+        "status": {"enum": ["draft", "approved", "gmail_draft", "send_requested", "sent", "replied", "suppressed", "failed"]},
+        "approved_by": {"type": "string"},
+        "approved_at": {"type": "string"},
+        "gmail_draft_id": {"type": "string"},
+        "unsubscribe": {"type": "boolean"}
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}
