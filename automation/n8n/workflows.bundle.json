@@ -1,0 +1,65 @@
+{
+  "version": "1.0.0",
+  "workflows": [
+    {
+      "file": "workflow_1_import_validate.json",
+      "name": "01 — Import and Validate Leads",
+      "path": "lead-import",
+      "purpose": "Accept lead JSON, normalize required fields, reject invalid or suppressed records, and return a validation result.",
+      "nodes": ["Webhook lead-import", "Code normalize-and-validate", "Respond validation-result"],
+      "guardrails": ["synthetic test first", "email syntax check", "suppression check", "no sending"]
+    },
+    {
+      "file": "workflow_2_generate_drafts.json",
+      "name": "02 — Generate Outreach Drafts",
+      "path": "generate-drafts",
+      "purpose": "Create a personalized draft only for qualified unsuppressed leads and store it with status=draft.",
+      "nodes": ["Webhook generate-drafts", "Code approval-eligibility", "LLM optional", "Data store draft", "Respond"],
+      "guardrails": ["confidence threshold", "no invented facts", "no sending", "provider optional"]
+    },
+    {
+      "file": "workflow_3_approved_to_gmail_draft.json",
+      "name": "03 — Approved Record to Gmail Draft",
+      "path": "create-gmail-draft",
+      "purpose": "For status=approved only, create a Gmail draft and record the Gmail draft identifier.",
+      "nodes": ["Webhook create-gmail-draft", "Code enforce-approved", "Gmail create draft", "Update outreach", "Respond"],
+      "guardrails": ["approved required", "unsubscribe false", "draft not send"]
+    },
+    {
+      "file": "workflow_4_send_command.json",
+      "name": "04 — Explicit Send Command",
+      "path": "send-approved",
+      "purpose": "Send only an existing Gmail draft whose record has status=send_requested and a matching command token.",
+      "nodes": ["Webhook send-approved", "Code verify command", "Gmail send draft", "Update sent status", "Respond"],
+      "guardrails": ["separate command", "draft id required", "idempotency key", "suppression check"]
+    },
+    {
+      "file": "workflow_5_followup_check.json",
+      "name": "05 — Follow-up Eligibility Check",
+      "schedule": "daily 13:00 UTC",
+      "purpose": "Identify sent records due for a follow-up, create a new draft, and require approval again.",
+      "nodes": ["Schedule", "Read due outreach", "Code eligibility", "Create follow-up draft", "Summary"],
+      "guardrails": ["maximum two follow-ups", "no reply", "not suppressed", "approval reset"]
+    },
+    {
+      "file": "workflow_6_reply_unsubscribe.json",
+      "name": "06 — Reply and Unsubscribe Processing",
+      "schedule": "hourly",
+      "purpose": "Classify replies, record positive/negative/question/unsubscribe, and immediately suppress unsubscribe addresses.",
+      "nodes": ["Schedule", "Gmail search replies", "Code classify", "Update outreach", "Update suppression"],
+      "guardrails": ["unsubscribe wins", "no automatic reply", "audit timestamp"]
+    },
+    {
+      "file": "workflow_7_daily_summary.json",
+      "name": "07 — Daily Operations Summary",
+      "schedule": "daily 21:00 UTC",
+      "purpose": "Summarize leads, drafts, approvals, sends, replies, suppressions, and errors without exposing message bodies or secrets.",
+      "nodes": ["Schedule", "Aggregate operational counts", "Compose summary", "Gmail send internal summary"],
+      "guardrails": ["internal recipient only", "counts not secrets", "failure ledger included"]
+    }
+  ],
+  "status_model": {
+    "lead": ["new", "qualified", "drafted", "contacted", "replied", "closed", "rejected"],
+    "outreach": ["draft", "approved", "gmail_draft", "send_requested", "sent", "replied", "suppressed", "failed"]
+  }
+}
