@@ -3,20 +3,83 @@ $ProgressPreference = 'SilentlyContinue'
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $logPath = Join-Path $scriptDir 'install-local.log'
+$script:TranscriptStarted = $false
+
 Start-Transcript -Path $logPath -Append | Out-Null
+$script:TranscriptStarted = $true
+
+function Stop-InstallerTranscript {
+  if ($script:TranscriptStarted) {
+    try { Stop-Transcript | Out-Null } catch {}
+    $script:TranscriptStarted = $false
+  }
+}
 
 function Fail([string]$message) {
   Write-Host "FAILED: $message" -ForegroundColor Red
   Write-Host "Log: $logPath" -ForegroundColor Yellow
-  Stop-Transcript | Out-Null
+  Stop-InstallerTranscript
   exit 1
 }
 
-function Run-Native([string]$label, [string]$file, [string[]]$arguments) {
+function Invoke-NativeCapture([string]$label, [string]$file, [string[]]$arguments) {
   Write-Host "[$label] $file $($arguments -join ' ')" -ForegroundColor Cyan
-  & $file @arguments
-  if ($LASTEXITCODE -ne 0) {
-    Fail "$label exited with code $LASTEXITCODE."
+  $captured = New-Object System.Collections.Generic.List[string]
+
+  & $file @arguments 2>&1 | ForEach-Object {
+    $text = $_.ToString()
+    [void]$captured.Add($text)
+    Write-Host $text
+  }
+
+  $exitCode = $LASTEXITCODE
+  return [pscustomobject]@{
+    Label = $label
+    ExitCode = $exitCode
+    Output = @($captured)
+  }
+}
+
+function Show-PortDiagnostics {
+  Write-Host '[diagnostic-ports] Checking listeners on ports 5678 and 8000...' -ForegroundColor Yellow
+  foreach ($port in @(5678, 8000)) {
+    try {
+      $listeners = @(Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue)
+      if ($listeners.Count -eq 0) {
+        Write-Host "[diagnostic-ports] Port $port has no Windows listener."
+        continue
+      }
+
+      foreach ($listener in $listeners) {
+        $processName = 'unknown'
+        try { $processName = (Get-Process -Id $listener.OwningProcess -ErrorAction Stop).ProcessName } catch {}
+        Write-Host "[diagnostic-ports] Port $port PID $($listener.OwningProcess) process $processName address $($listener.LocalAddress)"
+      }
+    } catch {
+      Write-Host "[diagnostic-ports] Could not inspect port $port: $($_.Exception.Message)"
+    }
+  }
+}
+
+function Show-ComposeDiagnostics {
+  Write-Host '[diagnostic] Capturing Docker and Compose state...' -ForegroundColor Yellow
+  [void](Invoke-NativeCapture 'diagnostic-docker-ps' 'docker' @('ps','-a','--format','table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'))
+  [void](Invoke-NativeCapture 'diagnostic-compose-ps' 'docker' @('compose','ps','-a'))
+  [void](Invoke-NativeCapture 'diagnostic-compose-logs' 'docker' @('compose','logs','--no-color','--tail=200','n8n','baserow'))
+  Show-PortDiagnostics
+}
+
+function Run-Native([string]$label, [string]$file, [string[]]$arguments, [switch]$ComposeDiagnostics) {
+  $result = Invoke-NativeCapture $label $file $arguments
+  if ($result.ExitCode -ne 0) {
+    Write-Host "[$label] Native exit code: $($result.ExitCode)" -ForegroundColor Red
+    if ($result.Output.Count -eq 0) {
+      Write-Host "[$label] The command returned no capturable output." -ForegroundColor Yellow
+    }
+    if ($ComposeDiagnostics) {
+      Show-ComposeDiagnostics
+    }
+    Fail "$label exited with code $($result.ExitCode)."
   }
 }
 
@@ -34,21 +97,42 @@ function Test-DockerEngine([int]$timeoutSeconds = 30) {
     $result = Receive-Job $job
     if ($result.ExitCode -ne 0) {
       Write-Host $result.Output
-      Fail "Docker engine is unavailable. Open Docker Desktop and confirm Linux containers are running."
+      Fail 'Docker engine is unavailable. Open Docker Desktop and confirm Linux containers are running.'
     }
   } finally {
     Remove-Job $job -Force -ErrorAction SilentlyContinue
   }
-  Write-Host "[docker-engine] Docker engine is running." -ForegroundColor Green
+  Write-Host '[docker-engine] Docker engine is running.' -ForegroundColor Green
+}
+
+function Wait-Http([string]$name, [string]$url, [int]$seconds) {
+  Write-Host "[health:$name] Waiting for $url for up to $seconds seconds..." -ForegroundColor Cyan
+  $deadline = (Get-Date).AddSeconds($seconds)
+  do {
+    try {
+      $response = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 5
+      if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 500) {
+        Write-Host "[health:$name] Responded with HTTP $($response.StatusCode)." -ForegroundColor Green
+        return
+      }
+    } catch {
+      Write-Host '.' -NoNewline
+    }
+    Start-Sleep -Seconds 3
+  } while ((Get-Date) -lt $deadline)
+
+  Write-Host ''
+  Show-ComposeDiagnostics
+  Fail "$name did not respond at $url within $seconds seconds."
 }
 
 try {
-  Write-Host "Mission GroundWork local automation install" -ForegroundColor Cyan
+  Write-Host 'Mission GroundWork local automation install' -ForegroundColor Cyan
   Write-Host "Script: $PSCommandPath"
   Write-Host "Log: $logPath"
 
   if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
-    Fail "Docker CLI is not installed or not on PATH. Install/open Docker Desktop, then rerun this script."
+    Fail 'Docker CLI is not installed or not on PATH. Install/open Docker Desktop, then rerun this script.'
   }
 
   Test-DockerEngine 30
@@ -63,7 +147,7 @@ try {
   }
 
   if (-not (Test-Path '.env')) {
-    Write-Host "[environment] Creating local random secrets..." -ForegroundColor Cyan
+    Write-Host '[environment] Creating local random secrets...' -ForegroundColor Cyan
     $keyBytes = New-Object byte[] 32
     [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($keyBytes)
     $key = [Convert]::ToBase64String($keyBytes)
@@ -71,47 +155,31 @@ try {
     [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($passwordBytes)
     $password = [Convert]::ToBase64String($passwordBytes).Replace('/','_').Replace('+','-')
     (Get-Content '.env.example' -Raw).Replace('replace-with-a-long-random-string', $key).Replace('replace-with-a-long-random-password', $password) | Set-Content '.env' -Encoding utf8
-    Write-Host "[environment] Created automation/.env." -ForegroundColor Green
+    Write-Host '[environment] Created automation/.env.' -ForegroundColor Green
   } else {
-    Write-Host "[environment] Reusing existing automation/.env." -ForegroundColor Green
+    Write-Host '[environment] Reusing existing automation/.env.' -ForegroundColor Green
   }
 
   Run-Native 'compose-validate' 'docker' @('compose','config','--quiet')
   Run-Native 'compose-pull' 'docker' @('compose','pull','n8n','baserow')
-  Run-Native 'compose-start' 'docker' @('compose','up','-d','n8n','baserow')
 
-  function Wait-Http([string]$name, [string]$url, [int]$seconds) {
-    Write-Host "[health:$name] Waiting for $url for up to $seconds seconds..." -ForegroundColor Cyan
-    $deadline = (Get-Date).AddSeconds($seconds)
-    do {
-      try {
-        $response = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 5
-        if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 500) {
-          Write-Host "[health:$name] Responded with HTTP $($response.StatusCode)." -ForegroundColor Green
-          return
-        }
-      } catch {
-        Write-Host "." -NoNewline
-      }
-      Start-Sleep -Seconds 3
-    } while ((Get-Date) -lt $deadline)
+  Write-Host '[compose-preflight] Current container and port state before startup:' -ForegroundColor Cyan
+  [void](Invoke-NativeCapture 'compose-preflight-ps' 'docker' @('compose','ps','-a'))
+  Show-PortDiagnostics
 
-    Write-Host ""
-    & docker compose ps
-    & docker compose logs --tail=100 $name
-    Fail "$name did not respond at $url within $seconds seconds."
-  }
+  Run-Native 'compose-start-n8n' 'docker' @('compose','up','-d','n8n') -ComposeDiagnostics
+  Run-Native 'compose-start-baserow' 'docker' @('compose','up','-d','baserow') -ComposeDiagnostics
 
   Wait-Http 'n8n' 'http://localhost:5678/healthz' 180
   Wait-Http 'baserow' 'http://localhost:8000/api/_health/' 300
 
-  Write-Host "[workflows] Generating seven n8n workflow exports..." -ForegroundColor Cyan
+  Write-Host '[workflows] Generating seven n8n workflow exports...' -ForegroundColor Cyan
   if (Get-Command python -ErrorAction SilentlyContinue) {
     Run-Native 'workflow-build' 'python' @('scripts/build_n8n_workflows.py')
   } elseif (Get-Command py -ErrorAction SilentlyContinue) {
     Run-Native 'workflow-build' 'py' @('scripts/build_n8n_workflows.py')
   } else {
-    Fail "Python is unavailable and workflow exports cannot be generated. Install Python or run the committed workflow generator elsewhere."
+    Fail 'Python is unavailable and workflow exports cannot be generated. Install Python or run the committed workflow generator elsewhere.'
   }
 
   $workflowFiles = @(Get-ChildItem 'n8n/workflows/workflow_*.json' -ErrorAction SilentlyContinue)
@@ -119,13 +187,14 @@ try {
     Fail "Expected 7 workflow exports, found $($workflowFiles.Count)."
   }
 
-  Write-Host "INSTALL VERIFIED" -ForegroundColor Green
-  Write-Host "n8n: http://localhost:5678"
-  Write-Host "Baserow: http://localhost:8000"
+  Write-Host 'INSTALL VERIFIED' -ForegroundColor Green
+  Write-Host 'n8n: http://localhost:5678'
+  Write-Host 'Baserow: http://localhost:8000'
   Write-Host "Workflow files: $($workflowFiles.Count)"
-  & docker compose ps
-  Stop-Transcript | Out-Null
+  [void](Invoke-NativeCapture 'compose-final-ps' 'docker' @('compose','ps'))
+  Stop-InstallerTranscript
   exit 0
 } catch {
+  Show-ComposeDiagnostics
   Fail $_.Exception.Message
 }
