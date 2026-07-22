@@ -1,0 +1,78 @@
+name: Runtime smoke test
+
+on:
+  push:
+    paths:
+      - 'automation/**'
+      - '.github/workflows/runtime-smoke-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create runtime environment
+        working-directory: automation
+        run: |
+          cp .env.example .env
+          sed -i 's/replace-with-a-long-random-string/runtime-test-key-012345678901234567890123456789/' .env
+          sed -i 's/replace-with-a-long-random-password/runtime-test-password/' .env
+
+      - name: Validate and pull core stack
+        working-directory: automation
+        run: |
+          docker compose config --quiet
+          docker compose pull n8n baserow
+
+      - name: Start core stack
+        working-directory: automation
+        run: docker compose up -d n8n baserow
+
+      - name: Wait for n8n
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:5678/healthz; then exit 0; fi
+            sleep 3
+          done
+          docker compose -f automation/docker-compose.yml --env-file automation/.env ps
+          docker compose -f automation/docker-compose.yml --env-file automation/.env logs --tail=200 n8n
+          exit 1
+
+      - name: Wait for Baserow
+        run: |
+          for i in $(seq 1 100); do
+            if curl -fsS http://localhost:8000/api/_health/; then exit 0; fi
+            sleep 3
+          done
+          docker compose -f automation/docker-compose.yml --env-file automation/.env ps
+          docker compose -f automation/docker-compose.yml --env-file automation/.env logs --tail=200 baserow
+          exit 1
+
+      - name: Validate workflow exports
+        run: |
+          python automation/scripts/build_n8n_workflows.py
+          test "$(find automation/n8n/workflows -name 'workflow_*.json' | wc -l)" -eq 7
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for path in Path('automation/n8n/workflows').glob('workflow_*.json'):
+              data = json.loads(path.read_text())
+              assert data['active'] is False
+              assert data['nodes']
+          print('seven workflows validated')
+          PY
+
+      - name: Show running services
+        working-directory: automation
+        run: docker compose ps
+
+      - name: Stop stack
+        if: always()
+        working-directory: automation
+        run: docker compose down -v
