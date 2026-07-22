@@ -35,9 +35,15 @@ jobs:
           $required = @(
             'Start-Transcript',
             'Test-DockerEngine 30',
+            'Invoke-NativeCapture',
+            '2>&1',
+            'Show-ComposeDiagnostics',
+            'Show-PortDiagnostics',
             "Run-Native 'compose-validate'",
             "Run-Native 'compose-pull'",
-            "Run-Native 'compose-start'",
+            "Run-Native 'compose-start-n8n'",
+            "Run-Native 'compose-start-baserow'",
+            'docker compose logs',
             'INSTALL VERIFIED',
             'install-local.log'
           )
@@ -45,6 +51,9 @@ jobs:
             if (-not $script.Contains($token)) {
               throw "Missing regression guard: $token"
             }
+          }
+          if ($script -match "Run-Native 'compose-start' 'docker' @\('compose','up','-d','n8n','baserow'\)") {
+            throw 'Combined opaque Compose startup returned.'
           }
           if ($script -match 'try\s*\{\s*docker info \| Out-Null') {
             throw 'Legacy silent docker-info check returned.'
