@@ -1,0 +1,51 @@
+name: Test Windows installer
+
+on:
+  push:
+    paths:
+      - 'automation/install-local.ps1'
+      - '.github/workflows/test-windows-installer.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  parse-and-guardrails:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse PowerShell installer
+        shell: pwsh
+        run: |
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path 'automation/install-local.ps1'),
+            [ref]$null,
+            [ref]$errors
+          )
+          if ($errors.Count -gt 0) {
+            $errors | Format-List | Out-String | Write-Error
+            exit 1
+          }
+      - name: Verify diagnostic regression guards
+        shell: pwsh
+        run: |
+          $script = Get-Content 'automation/install-local.ps1' -Raw
+          $required = @(
+            'Start-Transcript',
+            'Test-DockerEngine 30',
+            "Run-Native 'compose-validate'",
+            "Run-Native 'compose-pull'",
+            "Run-Native 'compose-start'",
+            'INSTALL VERIFIED',
+            'install-local.log'
+          )
+          foreach ($token in $required) {
+            if (-not $script.Contains($token)) {
+              throw "Missing regression guard: $token"
+            }
+          }
+          if ($script -match 'try\s*\{\s*docker info \| Out-Null') {
+            throw 'Legacy silent docker-info check returned.'
+          }
