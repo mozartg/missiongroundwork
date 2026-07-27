@@ -1,0 +1,45 @@
+name: Portfolio contract
+on:
+  push:
+    paths: [.portfolio/portfolio-contract.json, .github/workflows/portfolio-contract.yml]
+  schedule:
+    - cron: '23 10 * * 0'
+  workflow_dispatch:
+permissions: {contents: read, issues: write}
+concurrency: {group: 'portfolio-contract-${{ github.repository }}', cancel-in-progress: false}
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with: {persist-credentials: false}
+      - name: Validate local portfolio contract
+        id: contract
+        continue-on-error: true
+        env: {EXPECTED_REPOSITORY: '${{ github.repository }}'}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import datetime as d,json,os,pathlib,sys
+          e=[]; p=pathlib.Path('.portfolio/portfolio-contract.json')
+          try:c=json.loads(p.read_text())
+          except Exception as x:c={};e.append(f'Cannot read contract: {x}')
+          r=os.environ['EXPECTED_REPOSITORY']; allowed={'active','reference','incubating','consolidate'}
+          for ok,msg in [(c.get('repository')==r,'repository mismatch'),(c.get('system_of_record')=='GitHub','system_of_record must be GitHub'),(c.get('lifecycle') in allowed,'invalid lifecycle'),(bool(c.get('family')),'family required'),(bool(c.get('role')),'role required'),(bool(c.get('next_action')),'next_action required'),(c.get('automation',{}).get('clickup_required') is False,'ClickUp must be optional'),(c.get('automation',{}).get('traceability_required') is True,'traceability required')]:
+            if not ok:e.append(msg)
+          if c.get('lifecycle')=='consolidate' and not c.get('canonical_target'):e.append('canonical_target required')
+          o={'schema_version':1,'repository':r,'status':'PASS' if not e else 'FAIL','generated_at':d.datetime.now(d.timezone.utc).replace(microsecond=0).isoformat(),'lifecycle':c.get('lifecycle'),'canonical_target':c.get('canonical_target'),'errors':e,'mutation_performed':False}
+          pathlib.Path('portfolio-contract-receipt.json').write_text(json.dumps(o,indent=2)+'\n');print(json.dumps(o,indent=2));sys.exit(0 if not e else 1)
+          PY
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with: {name: 'portfolio-contract-${{ github.run_id }}-${{ github.run_attempt }}', path: portfolio-contract-receipt.json, if-no-files-found: error, retention-days: 30}
+      - name: Reconcile drift issue
+        if: always()
+        env: {GH_TOKEN: '${{ github.token }}', OUTCOME: '${{ steps.contract.outcome }}'}
+        shell: bash
+        run: |
+          n="$(gh issue list --state open --search 'PORTFOLIO CONTRACT DRIFT in:title' --json number --jq '.[0].number // empty')"; if [[ "$OUTCOME" != success ]]; then echo 'The scheduled portfolio contract check failed. Review the latest Actions receipt.' >/tmp/b; if [[ -n "$n" ]]; then gh issue edit "$n" --body-file /tmp/b; else gh issue create --title 'PORTFOLIO CONTRACT DRIFT' --body-file /tmp/b; fi; elif [[ -n "$n" ]]; then gh issue close "$n" --comment 'The repository contract is valid again.'; fi
+      - if: steps.contract.outcome != 'success'
+        run: exit 1
