@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "repository": "mozartg/missiongroundwork",
+  "system_of_record": "GitHub",
+  "portfolio_registry": "https://github.com/mozartg/mozart-os/blob/main/portfolio-reorganization/portfolio-registry-v2.json",
+  "family": "mission-groundwork-and-nonprofit",
+  "lifecycle": "active",
+  "role": "Canonical Mission GroundWork brand, service website, and public marketing repository.",
+  "canonical_target": null,
+  "next_action": "Remove any private career material, add public-facing README, topics, and deployment status.",
+  "risk": "critical",
+  "confidence": "high",
+  "coordination": {
+    "work_lease_issue": "https://github.com/mozartg/mozart-os/issues/13",
+    "heartbeat_issue": "https://github.com/mozartg/mozart-os/issues/14",
+    "parallel_work_policy": "Claim only the paths being changed; preserve newer parallel work and record collisions."
+  },
+  "automation": {
+    "owner_presence_required_for_routine_work": false,
+    "clickup_required": false,
+    "traceability_required": true,
+    "experimentation_allowed": true
+  }
+}
