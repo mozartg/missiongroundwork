@@ -1,0 +1,52 @@
+name: Cloudinary review staging
+
+on:
+  push:
+    paths:
+      - .github/workflows/cloudinary-review-staging.yml
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download and verify artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/mclp-stage
+          fetch_asset() {
+            id="$1"; expected="$2"; filename="$3"
+            work="/tmp/artifact-$id"
+            mkdir -p "$work"
+            curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" -o "$work/artifact.zip"
+            unzip -q "$work/artifact.zip" -d "$work/unpacked"
+            src="$(find "$work/unpacked" -type f -name "$filename" -print -quit)"
+            test -n "$src"
+            actual="$(sha256sum "$src" | awk '{print $1}')"
+            test "$actual" = "$expected"
+            cp "$src" "/tmp/mclp-stage/$filename"
+          }
+          fetch_asset 8749072978 fac3bf8fa7f2b1825937b05f882b479983470e72fc82b9b357ed9fecee4747ed IMG-004-ownership-is-fuzzy.png
+          fetch_asset 8759292864 4cc801dd54eaaf36fd40542dfdfe6dc6468230d617085bc92ad0b3551f841ffe IMG-007-shared-direction.png
+
+      - name: Publish temporary staging branch
+        run: |
+          set -euo pipefail
+          git init stage-repo
+          cd stage-repo
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git checkout --orphan cloudinary-staging
+          mkdir -p mclp-review
+          cp /tmp/mclp-stage/* mclp-review/
+          printf '%s\n' 'Temporary Cloudinary ingestion staging. Assets are unapproved review media rated 4/10.' > README.md
+          git add .
+          git commit -m 'stage: verified MCLP review assets'
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin HEAD:cloudinary-staging
