@@ -1,0 +1,54 @@
+schema_version: 1
+process_id: MCLP-001
+review_id: VID-003-REVISION-1-CREATIVE
+artifact_id: VID-003
+revision: 1
+project_id: mission-groundwork
+reviewed_at: 2026-07-30T02:08:00-04:00
+builder: deterministic_multi_scene_editorial_video_renderer
+reviewer: independent_visual_and_contract_inspection
+
+terminal_state: REJECTED_QUALITY
+technical_state: PASS_TECHNICAL
+creative_state: REJECTED_QUALITY
+creative_pass: false
+critical_failure: false
+quality_tier: standard_canary
+
+scores:
+  technical: 5.0
+  creative: 2.8
+  narrative: 4.0
+  platform: 2.6
+  mission_or_business: 3.8
+
+accepted_features:
+  - five_distinct_narrative_scenes
+  - actual_scene_progression_not_a_single_static_image_loop
+  - restrained_crossfades
+  - project_specific_language_and_palette
+  - contextual_public_domain_source_and_non_client_boundary
+  - silent_9_16_export_with_storyboard_and_receipt
+
+rejected_features:
+  - scene_4_headline_exceeds_the_bounded_right_hand_panel
+  - NAME_THE_OWNER_and_NAME_THE_HANDOFF_lines_are_clipped
+  - scene_4_does_not_meet_mobile_safe_zone_requirements
+  - renderer_lacked_fixed_line_width_preflight_for_the_split_scene
+
+primary_weakness: scene_4_typography_overflow
+
+method_change:
+  required: true
+  changes:
+    - split_scene_4_argument_into_four_short_lines
+    - reduce_photo_split_width_and_expand_the_editorial_panel
+    - add_explicit_pixel_width_assertions_for_all_fixed_headline_lines
+    - rerender_storyboard_before_video_acceptance
+
+quality_memory_change:
+  scope: deterministic_short_video_lane
+  rule: >-
+    A multi-scene video is rejected when any representative scene fails its
+    mobile safe-zone typography contract, even if the MP4, duration, codec,
+    transitions, and scene count pass technical QA.
