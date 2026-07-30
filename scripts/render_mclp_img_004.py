@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import io
 import json
-import textwrap
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -18,6 +17,11 @@ RECEIPT_PATH = OUTPUT_ROOT / "render-receipt.json"
 
 WIDTH = 1080
 HEIGHT = 1350
+MARGIN = 56
+PHOTO_TOP = 150
+PHOTO_HEIGHT = 610
+PHOTO_WIDTH = WIDTH - MARGIN * 2
+TEXT_TOP = 825
 
 
 def sha256(path: Path) -> str:
@@ -31,7 +35,7 @@ def font_path(preferred: str, fallback: str) -> str:
     raise FileNotFoundError(f"No font found: {preferred} or {fallback}")
 
 
-def cover_crop(image: Image.Image, width: int, height: int, focus_x: float = 0.57, focus_y: float = 0.48) -> Image.Image:
+def cover_crop(image: Image.Image, width: int, height: int, focus_x: float = 0.55, focus_y: float = 0.52) -> Image.Image:
     ratio = max(width / image.width, height / image.height)
     resized = image.resize((round(image.width * ratio), round(image.height * ratio)), Image.Resampling.LANCZOS)
     left = max(0, min(resized.width - width, round(resized.width * focus_x - width / 2)))
@@ -41,8 +45,7 @@ def cover_crop(image: Image.Image, width: int, height: int, focus_x: float = 0.5
 
 def rounded_mask(size: tuple[int, int], radius: int) -> Image.Image:
     mask = Image.new("L", size, 0)
-    draw = ImageDraw.Draw(mask)
-    draw.rounded_rectangle((0, 0, size[0], size[1]), radius=radius, fill=255)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, size[0], size[1]), radius=radius, fill=255)
     return mask
 
 
@@ -68,6 +71,8 @@ def main() -> None:
     job = json.loads(JOB_PATH.read_text(encoding="utf-8"))
     if job["process_id"] != "MCLP-001" or job["artifact_id"] != "IMG-004":
         raise ValueError("Unexpected job identity")
+    if job.get("revision") != 2:
+        raise ValueError("This renderer is restricted to IMG-004 revision 2")
     if job["production_method"] != "deterministic_editorial_photo_composition":
         raise ValueError("Unexpected production method")
     if job["publishing_authorized"] is not False or job["paid_service_authorized"] is not False:
@@ -76,7 +81,7 @@ def main() -> None:
     OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
     request = urllib.request.Request(
         job["source_photo"]["url"],
-        headers={"User-Agent": "MCLP-001-deterministic-editorial/1.0"},
+        headers={"User-Agent": "MCLP-001-deterministic-editorial/2.0"},
     )
     with urllib.request.urlopen(request, timeout=90) as response:
         source_bytes = response.read()
@@ -92,93 +97,111 @@ def main() -> None:
     canvas = Image.new("RGB", (WIDTH, HEIGHT), palette["off_white"])
     draw = ImageDraw.Draw(canvas)
 
-    photo = Image.open(io.BytesIO(source_bytes)).convert("RGB")
-    photo = cover_crop(photo, 710, 1190)
-    photo = ImageEnhance.Color(photo).enhance(0.82)
-    photo = ImageEnhance.Contrast(photo).enhance(1.08)
+    serif = font_path(
+        "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation2/LiberationSerif-Bold.ttf",
+    )
+    sans = font_path(
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
+    )
+    sans_bold = font_path(
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf",
+    )
+    headline_font = ImageFont.truetype(serif, 60)
+    body_font = ImageFont.truetype(sans, 31)
+    label_font = ImageFont.truetype(sans_bold, 22)
+    cta_font = ImageFont.truetype(sans_bold, 25)
+    credit_font = ImageFont.truetype(sans, 18)
+
+    draw.text((MARGIN, 54), "MISSION GROUNDWORK", font=label_font, fill=palette["foundation_green"])
+    draw.text((WIDTH - MARGIN, 54), "OPERATING CLARITY", font=label_font, fill=palette["slate"], anchor="ra")
+    draw.rectangle((MARGIN, 104, MARGIN + 150, 112), fill=palette["muted_clay"])
+
+    source = Image.open(io.BytesIO(source_bytes)).convert("RGB")
+    photo = cover_crop(source, PHOTO_WIDTH, PHOTO_HEIGHT)
+    photo = ImageEnhance.Color(photo).enhance(0.78)
+    photo = ImageEnhance.Contrast(photo).enhance(1.06)
     warm = Image.new("RGB", photo.size, palette["warm_stone"])
-    photo = Image.blend(photo, warm, 0.08)
+    photo = Image.blend(photo, warm, 0.07)
 
-    photo_panel = Image.new("RGB", (750, 1230), palette["off_white"])
-    shadow = Image.new("RGBA", photo_panel.size, (0, 0, 0, 0))
+    shadow = Image.new("RGBA", (PHOTO_WIDTH + 40, PHOTO_HEIGHT + 40), (0, 0, 0, 0))
     shadow_draw = ImageDraw.Draw(shadow)
-    shadow_draw.rounded_rectangle((24, 26, 734, 1216), radius=42, fill=(30, 39, 39, 62))
-    shadow = shadow.filter(ImageFilter.GaussianBlur(18))
-    canvas.paste(shadow, (312, 60), shadow)
-    photo_panel.paste(photo, (20, 20), rounded_mask(photo.size, 36))
-    canvas.paste(photo_panel, (312, 60))
+    shadow_draw.rounded_rectangle((20, 20, PHOTO_WIDTH + 20, PHOTO_HEIGHT + 20), radius=34, fill=(25, 35, 34, 55))
+    shadow = shadow.filter(ImageFilter.GaussianBlur(15))
+    canvas.paste(shadow, (MARGIN - 20, PHOTO_TOP - 20), shadow)
+    canvas.paste(photo, (MARGIN, PHOTO_TOP), rounded_mask(photo.size, 30))
 
-    overlay = Image.new("RGBA", (710, 1190), (0, 0, 0, 0))
-    overlay_draw = ImageDraw.Draw(overlay)
-    for x in range(260):
-        alpha = round(145 * (1 - x / 260) ** 1.8)
-        overlay_draw.line((x, 0, x, 1190), fill=(23, 35, 59, alpha))
-    canvas.paste(overlay, (332, 80), overlay)
+    lower_overlay = Image.new("RGBA", photo.size, (0, 0, 0, 0))
+    overlay_draw = ImageDraw.Draw(lower_overlay)
+    for y in range(280):
+        alpha = round(150 * (y / 279) ** 1.6)
+        overlay_draw.line((0, PHOTO_HEIGHT - 280 + y, PHOTO_WIDTH, PHOTO_HEIGHT - 280 + y), fill=(20, 38, 33, alpha))
+    canvas.paste(lower_overlay, (MARGIN, PHOTO_TOP), lower_overlay)
+    draw.text((MARGIN + 30, PHOTO_TOP + PHOTO_HEIGHT - 44), "CONTEXT: COMMUNITY DECISION-MAKING", font=label_font, fill=palette["off_white"], anchor="ls")
 
-    heading_font = ImageFont.truetype(
-        font_path("/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf", "/usr/share/fonts/truetype/liberation2/LiberationSerif-Bold.ttf"),
-        76,
-    )
-    body_font = ImageFont.truetype(
-        font_path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf"),
-        31,
-    )
-    small_bold = ImageFont.truetype(
-        font_path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf"),
-        23,
-    )
-    cta_font = ImageFont.truetype(
-        font_path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf"),
-        27,
-    )
-    credit_font = ImageFont.truetype(
-        font_path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf"),
-        16,
-    )
+    headline_lines = job["headline"].splitlines()
+    if len(headline_lines) != 2:
+        raise ValueError("Revision 2 requires exactly two headline lines")
+    y = TEXT_TOP
+    draw.text((MARGIN, y), headline_lines[0], font=headline_font, fill=palette["foundation_green"])
+    y += 72
+    draw.text((MARGIN, y), headline_lines[1], font=headline_font, fill=palette["muted_clay"])
 
-    draw.text((64, 76), "MISSION GROUNDWORK", font=small_bold, fill=palette["foundation_green"])
-    draw.rectangle((64, 122, 208, 132), fill=palette["muted_clay"])
-    draw.text((64, 164), "OPERATING CLARITY", font=small_bold, fill=palette["slate"])
-
-    lines = wrap_by_pixels(draw, job["headline"], heading_font, 510)
-    y = 260
-    for index, line in enumerate(lines):
-        fill = palette["foundation_green"] if index < len(lines) - 1 else palette["muted_clay"]
-        draw.text((64, y), line, font=heading_font, fill=fill)
-        y += 82
-
-    body_lines = wrap_by_pixels(draw, job["body"], body_font, 430)
-    y = max(y + 44, 690)
+    body_y = y + 92
+    body_lines = wrap_by_pixels(draw, job["body"], body_font, 685)
     for line in body_lines:
-        draw.text((64, y), line, font=body_font, fill=palette["slate"])
-        y += 45
+        draw.text((MARGIN, body_y), line, font=body_font, fill=palette["slate"])
+        body_y += 43
 
-    cta_box = (64, 1000, 356, 1072)
-    draw.rounded_rectangle(cta_box, radius=20, fill=palette["foundation_green"])
-    draw.text((210, 1036), job["cta"], font=cta_font, fill=palette["off_white"], anchor="mm")
+    cta_text_width = draw.textlength(job["cta"], font=cta_font)
+    cta_width = round(cta_text_width + 64)
+    cta_height = 62
+    cta_x = WIDTH - MARGIN - cta_width
+    cta_y = 1122
+    if cta_x < 590 or cta_x + cta_width > WIDTH - MARGIN:
+        raise RuntimeError("CTA bounds violate layout contract")
+    draw.rounded_rectangle((cta_x, cta_y, cta_x + cta_width, cta_y + cta_height), radius=18, fill=palette["foundation_green"])
+    draw.text((cta_x + cta_width / 2, cta_y + cta_height / 2), job["cta"], font=cta_font, fill=palette["off_white"], anchor="mm")
 
-    draw.text((64, 1128), "HELPING YOUR TEAM START ON SOLID GROUND.", font=small_bold, fill=palette["slate"])
-    draw.line((64, 1178, 270, 1178), fill=palette["warm_stone"], width=4)
+    draw.text((MARGIN, 1140), "HELPING YOUR TEAM START", font=label_font, fill=palette["slate"])
+    draw.text((MARGIN, 1172), "ON SOLID GROUND.", font=label_font, fill=palette["foundation_green"])
+    draw.line((MARGIN, 1212, MARGIN + 225, 1212), fill=palette["warm_stone"], width=4)
 
-    credit = "Context photo: Community meeting, Sierra Leone — USAID/E. Benya, public domain. Not a client or case study."
-    credit_lines = textwrap.wrap(credit, width=72)
-    cy = 1256
+    credit_lines = [
+        "Context photo: Community meeting, Sierra Leone — USAID/E. Benya, public domain.",
+        "Contextual imagery only; not a Mission GroundWork client or case study.",
+    ]
+    credit_y = 1250
     for line in credit_lines:
-        draw.text((64, cy), line, font=credit_font, fill="#65706F")
-        cy += 21
+        if draw.textlength(line, font=credit_font) > WIDTH - MARGIN * 2:
+            raise RuntimeError("Credit line exceeds safe width")
+        draw.text((MARGIN, credit_y), line, font=credit_font, fill="#65706F")
+        credit_y += 27
+    if credit_y > HEIGHT - 20:
+        raise RuntimeError("Credit exceeds bottom safe area")
 
     canvas.save(OUTPUT_PATH, format="PNG", optimize=True)
 
     receipt = {
         "schema_version": 1,
         "process_id": "MCLP-001",
-        "receipt_id": "IMG-004-RENDER",
+        "receipt_id": "IMG-004-RENDER-REVISION-2",
         "artifact_id": "IMG-004",
+        "revision": 2,
         "captured_at": datetime.now(timezone.utc).isoformat(),
         "status": "PASS_TECHNICAL",
         "evidence_state": "OBSERVED_ONCE",
         "terminal_state": "USER_REVIEW_REQUIRED",
         "production_method": job["production_method"],
+        "layout_checks": {
+            "separate_photo_and_type_regions": True,
+            "cta_full_text_width_px": round(cta_text_width),
+            "cta_box_width_px": cta_width,
+            "credit_within_safe_area": True,
+            "minimum_margin_px": MARGIN,
+        },
         "source": {
             "title": job["source_photo"]["title"],
             "creator": job["source_photo"]["creator"],
