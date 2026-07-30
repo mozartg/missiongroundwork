@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "process_id": "MCLP-001",
+  "artifact_id": "IMG-007",
+  "revision": 1,
+  "project_id": "mission-groundwork",
+  "project": "Mission GroundWork",
+  "media_type": "image",
+  "purpose": "Create a second distinct Mission GroundWork recognition image about activity without shared direction, establishing within-project image-family consistency.",
+  "audience": [
+    "nonprofit executive directors",
+    "nonprofit chiefs of staff",
+    "program and operations leaders"
+  ],
+  "platform": "Instagram 4:5 and LinkedIn feed",
+  "quality_tier": "standard_phase_4_family_test",
+  "production_method": "deterministic_alignment_editorial_composition",
+  "kicker": "MISSION GROUNDWORK / ALIGNMENT",
+  "headline": "THE TEAM IS MOVING.\nTHE DIRECTION ISN'T SHARED.",
+  "body": "Activity can hide a missing decision. Start by naming the outcome, the owner, and the handoff.",
+  "closing": "CLARIFY → ALIGN → BUILD THE GROUNDWORK",
+  "source_photo": {
+    "title": "Community land use planning (8330536582).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/d/d4/Community_land_use_planning_%288330536582%29.jpg",
+    "creator": "USAID in Africa / USAID Central African Regional Program for the Environment",
+    "context": "A participatory GIS mapping session in which diverse stakeholders share preferred land-use options and work toward consensus.",
+    "license": "Public domain in the United States; work of a USAID employee in official duties.",
+    "expected_sha1": "6465cb3f5dfbbb4a091973012a84632ed5951161",
+    "expected_bytes": 192143,
+    "source_page": "https://commons.wikimedia.org/wiki/File:Community_land_use_planning_(8330536582).jpg"
+  },
+  "brand": {
+    "foundation_green": "#2E5E4E",
+    "warm_stone": "#D9CDBA",
+    "slate": "#39434D",
+    "off_white": "#F7F5F2",
+    "muted_clay": "#A86E4A"
+  },
+  "layout_contract": {
+    "construction": "editorial headline and body above a large documentary photo, followed by one continuous action band",
+    "distinct_from_IMG_004": true,
+    "headline_lines": 2,
+    "photo_region": "lower full-width bounded documentary panel",
+    "text_photo_overlap": false,
+    "closing_rule": "one continuous band; no dashboard cards or metric tiles",
+    "safe_margin_px": 56,
+    "credit_rule": "complete visible source and non-client disclaimer"
+  },
+  "truth_boundaries": [
+    "The photograph is contextual public-domain editorial imagery and is not a Mission GroundWork client, engagement, or case study.",
+    "The people shown are not identified as users, customers, or endorsers.",
+    "No result, demand, performance, or service outcome may be inferred from the photograph.",
+    "The source depicts participatory land-use planning; the Mission GroundWork message is an editorial analogy, not a description of the photographed event.",
+    "Publishing remains disabled pending independent creative and project-owner review."
+  ],
+  "publishing_authorized": false,
+  "paid_service_authorized": false,
+  "required_terminal_state_after_generation": "USER_REVIEW_REQUIRED"
+}
