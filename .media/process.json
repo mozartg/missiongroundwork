@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "process_id": "MCLP-001",
+  "process_version": "0.3.1-phase-3-local-resume",
+  "repository": "mozartg/missiongroundwork",
+  "repository_role": "product_authority_and_project_media_profile",
+  "authority_limit": "consumes MCLP; does not own portfolio-wide media generation",
+  "project_id": "mission-groundwork",
+  "current_lane": "deterministic_editorial_photography",
+  "current_canary": {
+    "artifact_id": "IMG-004",
+    "job": "media/jobs/IMG-004-ownership-is-fuzzy.json",
+    "renderer": "scripts/render_mclp_img_004.py",
+    "workflow": ".github/workflows/mclp-img-004.yml",
+    "technical_state": "PASS_TECHNICAL",
+    "creative_state": "PASS_CREATIVE_PROVISIONAL",
+    "terminal_state": "USER_REVIEW_REQUIRED"
+  },
+  "toolchain_lock": ".media/toolchain.lock.json",
+  "project_profile": ".media/project-profile.yaml",
+  "quality_profile": ".media/quality-profile.yaml",
+  "output_index": ".media/output-index.json",
+  "publishing_authorized": false,
+  "paid_service_authorized": false
+}
