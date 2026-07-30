@@ -1,0 +1,61 @@
+schema_version: 1
+process_id: MCLP-001
+review_id: IMG-004-REVISION-1-CREATIVE
+artifact_id: IMG-004
+revision: 1
+project_id: mission-groundwork
+workflow_run_id: 30516376039
+reviewed_at: 2026-07-30T01:21:00-04:00
+builder: deterministic_editorial_renderer
+reviewer: independent_visual_inspection
+
+terminal_state: REJECTED_QUALITY
+technical_state: PASS_TECHNICAL
+creative_pass: false
+critical_failure: false
+
+scores:
+  technical: 5.0
+  creative: 1.5
+  narrative: 2.5
+  platform: 1.5
+  mission_or_business: 2.5
+
+affected_output:
+  file: IMG-004-ownership-is-fuzzy.png
+  workflow_artifact_id: 8749030807
+  workflow_artifact_digest: sha256:707259de6cb1dc95a234477b4e2266a8dbcf0b23d22d9dfc277ce930b4be48fc
+
+accepted_features:
+  - verified_public_domain_source_and_hash
+  - source_context_and_non_client_disclaimer
+  - Mission_GroundWork_palette
+  - real_community_context
+  - complete_technical_receipt
+
+rejected_features:
+  - headline_overlaps_photo_and_subject
+  - left_text_panel_is_too_narrow_for_headline_size
+  - CTA_is_clipped_to_QUEST_GROUNDWORK
+  - body_text_crosses_the_photo_and_loses_contrast
+  - credit_is_too_low_contrast_and_close_to_trim_edge
+  - hierarchy_is_crowded_and_not_spacious
+  - layout_does_not_meet_project_quality_fingerprint
+
+primary_weakness: uncontrolled_text_and_photo_collision
+
+method_change:
+  required: true
+  changes:
+    - use_full_width_upper_photo_panel
+    - move_headline_and_body_into_bounded_lower_text_region
+    - calculate_CTA_width_from_actual_text_metrics
+    - enforce_safe_margins_for_credit_and_tagline
+    - prevent_any_text_from_crossing_between_layout_regions
+
+quality_memory_change:
+  scope: deterministic_editorial_photo_lane
+  rule: >-
+    A successful image export is rejected when the type region is not explicitly
+    separated from the photograph or when any call-to-action text is clipped.
+  prior_outputs_requiring_re_evaluation: []
