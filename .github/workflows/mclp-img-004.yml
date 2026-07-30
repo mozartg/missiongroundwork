@@ -1,0 +1,100 @@
+name: MCLP IMG-004 deterministic editorial
+
+on:
+  pull_request:
+    paths:
+      - 'media/jobs/IMG-004-ownership-is-fuzzy.json'
+      - 'scripts/render_mclp_img_004.py'
+      - '.github/workflows/mclp-img-004.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4e3e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+
+      - name: Install bounded renderer dependency
+        run: python -m pip install --disable-pip-version-check --no-input Pillow==11.3.0
+
+      - name: Validate structured job and script
+        run: |
+          set -euo pipefail
+          python -m py_compile scripts/render_mclp_img_004.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          job = json.loads(Path('media/jobs/IMG-004-ownership-is-fuzzy.json').read_text(encoding='utf-8'))
+          assert job['process_id'] == 'MCLP-001'
+          assert job['artifact_id'] == 'IMG-004'
+          assert job['project_id'] == 'mission-groundwork'
+          assert job['production_method'] == 'deterministic_editorial_photo_composition'
+          assert job['publishing_authorized'] is False
+          assert job['paid_service_authorized'] is False
+          assert job['source_photo']['license'].startswith('Public domain')
+          assert job['source_photo']['expected_sha1'] == '0f96478e2ed2b605542bcde64ed7294c122fb115'
+          print('IMG-004 structured job: PASS')
+          PY
+
+      - name: Render editorial image
+        run: python scripts/render_mclp_img_004.py
+
+      - name: Validate output and receipt
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          from PIL import Image
+
+          root = Path('artifacts/mclp/IMG-004')
+          output = root / 'IMG-004-ownership-is-fuzzy.png'
+          receipt = json.loads((root / 'render-receipt.json').read_text(encoding='utf-8'))
+          assert output.is_file() and output.stat().st_size > 100_000
+          with Image.open(output) as image:
+              assert image.format == 'PNG'
+              assert image.size == (1080, 1350)
+          digest = hashlib.sha256(output.read_bytes()).hexdigest()
+          assert receipt['status'] == 'PASS_TECHNICAL'
+          assert receipt['terminal_state'] == 'USER_REVIEW_REQUIRED'
+          assert receipt['output']['sha256'] == digest
+          assert receipt['publishing_authorized'] is False
+          assert receipt['paid_service_used'] is False
+          print(json.dumps(receipt, indent=2))
+          PY
+
+      - name: Publish run summary
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'MD'
+          ## MCLP IMG-004
+
+          - Project: Mission GroundWork
+          - Lane: deterministic editorial photography
+          - Source: verified public-domain USAID image
+          - State: technical pass; creative review required
+          - Publishing: disabled
+          - Paid services: none
+          MD
+          cat artifacts/mclp/IMG-004/render-receipt.json >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload private review artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mclp-img-004-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/mclp/IMG-004
+          if-no-files-found: error
+          retention-days: 30
