@@ -50,3 +50,5 @@ jobs:
           git commit -m 'stage: verified MCLP review assets'
           git remote add origin "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git"
           git push --force origin HEAD:cloudinary-staging
+
+# trigger: 2026-07-30T18:45:00Z
