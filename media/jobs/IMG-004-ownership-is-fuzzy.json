@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "process_id": "MCLP-001",
+  "artifact_id": "IMG-004",
+  "revision": 2,
+  "project_id": "mission-groundwork",
+  "project": "Mission GroundWork",
+  "media_type": "image",
+  "purpose": "Create a problem-recognition image about unclear ownership in important nonprofit work.",
+  "audience": [
+    "nonprofit executive directors",
+    "nonprofit chiefs of staff",
+    "program and operations leaders"
+  ],
+  "platform": "Instagram 4:5 and LinkedIn feed",
+  "quality_tier": "standard_canary",
+  "production_method": "deterministic_editorial_photo_composition",
+  "headline": "THE WORK IS IMPORTANT.\nOWNERSHIP IS FUZZY.",
+  "body": "Activity is not alignment. Start by naming the decision, the owner, and the handoff.",
+  "cta": "REQUEST GROUNDWORK",
+  "layout_contract": {
+    "photo_region": "full-width upper editorial panel",
+    "headline_region": "bounded lower text panel; no text-photo collision",
+    "cta_rule": "full phrase must fit with minimum 28 px horizontal padding",
+    "credit_rule": "minimum 18 px font and complete visible attribution",
+    "safe_margin_px": 56
+  },
+  "prior_revision": {
+    "workflow_run_id": 30516376039,
+    "state": "REJECTED_QUALITY",
+    "reasons": [
+      "headline collided with the photograph",
+      "CTA clipped to QUEST GROUNDWORK",
+      "body text crossed the subject and lost contrast",
+      "credit text was too low and weak",
+      "hierarchy did not meet the Mission GroundWork quality profile"
+    ]
+  },
+  "source_photo": {
+    "title": "Community meeting (8330375152).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/8/8d/Community_meeting_%288330375152%29.jpg",
+    "creator": "USAID/E. Benya",
+    "context": "Community members at a forest co-management signing ceremony in Sierra Leone.",
+    "license": "Public domain in the United States; work of a USAID employee in official duties.",
+    "expected_sha1": "0f96478e2ed2b605542bcde64ed7294c122fb115",
+    "source_page": "https://commons.wikimedia.org/wiki/File:Community_meeting_(8330375152).jpg"
+  },
+  "brand": {
+    "foundation_green": "#2E5E4E",
+    "warm_stone": "#D9CDBA",
+    "slate": "#39434D",
+    "off_white": "#F7F5F2",
+    "muted_clay": "#A86E4A"
+  },
+  "truth_boundaries": [
+    "The photograph is contextual public-domain editorial imagery and is not a Mission GroundWork client or case study.",
+    "No outcome, demand, client, or performance claim may be inferred from the photograph.",
+    "Publishing remains disabled pending creative review."
+  ],
+  "publishing_authorized": false,
+  "paid_service_authorized": false,
+  "required_terminal_state_after_generation": "USER_REVIEW_REQUIRED"
+}
