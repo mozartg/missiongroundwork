@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "process_id": "MCLP-001",
+  "artifact_id": "VID-003",
+  "revision": 1,
+  "project_id": "mission-groundwork",
+  "project": "Mission GroundWork",
+  "media_type": "short_video",
+  "purpose": "Create a silent visual essay that moves from recognition of important work to a concrete ownership and handoff practice.",
+  "audience": [
+    "nonprofit executive directors",
+    "nonprofit chiefs of staff",
+    "program and operations leaders"
+  ],
+  "platform": "Instagram Reels, TikTok, and YouTube Shorts",
+  "quality_tier": "standard_canary",
+  "production_method": "deterministic_multi_scene_editorial_video",
+  "format": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 24,
+    "duration_seconds": 15,
+    "audio": false
+  },
+  "scenes": [
+    {
+      "scene_id": "recognition",
+      "start_seconds": 0,
+      "end_seconds": 3,
+      "purpose": "Establish real community decision-making context.",
+      "headline": "THE WORK IS IMPORTANT.",
+      "construction": "slow editorial push into contextual meeting photo"
+    },
+    {
+      "scene_id": "tension",
+      "start_seconds": 3,
+      "end_seconds": 6,
+      "purpose": "Name the operating problem.",
+      "headline": "BUT WHO OWNS THE DECISION?",
+      "construction": "different crop with warm overlay and restrained type"
+    },
+    {
+      "scene_id": "decision",
+      "start_seconds": 6,
+      "end_seconds": 9,
+      "purpose": "Introduce the first practical action.",
+      "headline": "NAME THE DECISION.",
+      "construction": "full editorial type scene with one evidence line"
+    },
+    {
+      "scene_id": "ownership",
+      "start_seconds": 9,
+      "end_seconds": 12,
+      "purpose": "Introduce ownership and handoff as the operating spine.",
+      "headline": "NAME THE OWNER.\nNAME THE HANDOFF.",
+      "construction": "paired type and contextual detail crop"
+    },
+    {
+      "scene_id": "resolution",
+      "start_seconds": 12,
+      "end_seconds": 15,
+      "purpose": "End with the brand promise and review-gated call to action.",
+      "headline": "START ON SOLID GROUND.",
+      "cta": "REQUEST GROUNDWORK",
+      "construction": "clean brand end frame"
+    }
+  ],
+  "source_photo": {
+    "title": "Community meeting (8330375152).jpg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/8/8d/Community_meeting_%288330375152%29.jpg",
+    "creator": "USAID/E. Benya",
+    "context": "Community members at a forest co-management signing ceremony in Sierra Leone.",
+    "license": "Public domain in the United States; work of a USAID employee in official duties.",
+    "expected_sha1": "0f96478e2ed2b605542bcde64ed7294c122fb115",
+    "source_page": "https://commons.wikimedia.org/wiki/File:Community_meeting_(8330375152).jpg"
+  },
+  "brand": {
+    "foundation_green": "#2E5E4E",
+    "warm_stone": "#D9CDBA",
+    "slate": "#39434D",
+    "off_white": "#F7F5F2",
+    "muted_clay": "#A86E4A"
+  },
+  "quality_requirements": [
+    "Every scene must have a distinct narrative purpose.",
+    "The video must not be a single static image loop.",
+    "At least three visually distinct scene constructions are required.",
+    "Text must remain inside 9:16 safe zones.",
+    "No random zoom, arbitrary transition, or dashboard card construction.",
+    "The contextual photo must not be presented as a client, case study, or Mission GroundWork event.",
+    "The opening frame and closing frame must be legible without audio."
+  ],
+  "publishing_authorized": false,
+  "paid_service_authorized": false,
+  "required_terminal_state_after_generation": "USER_REVIEW_REQUIRED"
+}
