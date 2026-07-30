@@ -2,6 +2,7 @@
   "schema_version": 1,
   "process_id": "MCLP-001",
   "artifact_id": "IMG-004",
+  "revision": 2,
   "project_id": "mission-groundwork",
   "project": "Mission GroundWork",
   "media_type": "image",
@@ -17,6 +18,24 @@
   "headline": "THE WORK IS IMPORTANT.\nOWNERSHIP IS FUZZY.",
   "body": "Activity is not alignment. Start by naming the decision, the owner, and the handoff.",
   "cta": "REQUEST GROUNDWORK",
+  "layout_contract": {
+    "photo_region": "full-width upper editorial panel",
+    "headline_region": "bounded lower text panel; no text-photo collision",
+    "cta_rule": "full phrase must fit with minimum 28 px horizontal padding",
+    "credit_rule": "minimum 18 px font and complete visible attribution",
+    "safe_margin_px": 56
+  },
+  "prior_revision": {
+    "workflow_run_id": 30516376039,
+    "state": "REJECTED_QUALITY",
+    "reasons": [
+      "headline collided with the photograph",
+      "CTA clipped to QUEST GROUNDWORK",
+      "body text crossed the subject and lost contrast",
+      "credit text was too low and weak",
+      "hierarchy did not meet the Mission GroundWork quality profile"
+    ]
+  },
   "source_photo": {
     "title": "Community meeting (8330375152).jpg",
     "url": "https://upload.wikimedia.org/wikipedia/commons/8/8d/Community_meeting_%288330375152%29.jpg",
