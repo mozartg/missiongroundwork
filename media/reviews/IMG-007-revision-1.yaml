@@ -1,0 +1,93 @@
+schema_version: 1
+process_id: MCLP-001
+review_id: IMG-007-REVISION-1-CREATIVE
+artifact_id: IMG-007
+revision: 1
+project_id: mission-groundwork
+workflow_run_id: 30542533477
+reviewed_at: 2026-07-30T08:28:00-04:00
+builder: deterministic_alignment_editorial_renderer
+reviewer: independent_visual_inspection
+
+terminal_state: USER_REVIEW_REQUIRED
+technical_state: PASS_TECHNICAL
+creative_state: PASS_CREATIVE_PROVISIONAL
+creative_pass: true
+critical_failure: false
+quality_tier: standard_phase_4_family_test
+
+scores:
+  technical: 5.0
+  creative: 4.5
+  narrative: 4.5
+  platform: 4.5
+  mission_or_business: 4.5
+  within_project_consistency: 4.6
+  distinction_from_prior_artifact: 4.7
+
+affected_output:
+  file: IMG-007-shared-direction.png
+  workflow_artifact_id: 8759292864
+  workflow_artifact_digest: sha256:d18d17851c7ea114d833bfe6de89a44303a91d979e66510178b1cfcdd99250ae
+  output_sha256: 4cc801dd54eaaf36fd40542dfdfe6dc6468230d617085bc92ad0b3551f841ffe
+  dimensions: 1080x1350
+  bytes: 1153092
+
+accepted_features:
+  - materially_distinct_construction_from_IMG_004
+  - strong_project_specific_problem_recognition_headline
+  - clear_activity_without_alignment_metaphor
+  - documentary_participatory_planning_context
+  - spacious_editorial_hierarchy
+  - large_mobile_legible_type
+  - complete_separation_between_text_and_photo
+  - one_continuous_action_band_without_dashboard_cards
+  - Mission_GroundWork_palette_and_voice
+  - visible_public_domain_credit_and_non_client_disclaimer
+  - pinned_source_SHA1_and_byte_count
+  - complete_render_and_output_receipt
+
+comparison_to_IMG_004:
+  shared_family_features:
+    - grounded_warm_credible_tone
+    - Mission_GroundWork_palette
+    - real_community_context
+    - one_primary_recognition_idea
+    - evidence_before_claims
+    - explicit_non_client_boundary
+  distinct_features:
+    - headline_and_body_above_photo
+    - lower_documentary_photo_panel
+    - continuous_action_band
+    - alignment_problem_instead_of_ownership_problem
+    - different_source_and_geographic_context
+    - no_CTA_button_construction
+
+remaining_limitations:
+  - contextual_photo_is_not_a_Mission_GroundWork_case_study
+  - final_brand_fonts_are_not_embedded
+  - project_owner_review_remains_required
+  - two_project_artifacts_do_not_authorize_unbounded_template_repetition
+  - future_family_artifacts_must_change_source_composition_and_narrative_purpose
+
+truth_review:
+  source_page: https://commons.wikimedia.org/wiki/File:Community_land_use_planning_(8330536582).jpg
+  source_license: Public domain in the United States; USAID employee work in official duties.
+  subject_boundary: People shown are not clients, users, customers, or endorsers.
+  analogy_boundary: The Mission GroundWork message is an editorial analogy and not a description of the photographed event.
+
+promotion_effect:
+  engine_promoted: false
+  lane_state: TECHNICALLY_PROMOTED_APPROVAL_GATED
+  project_family_progress: 2_distinct_Mission_GroundWork_artifacts
+  publishing_authorized: false
+  next_distinct_artifact_required: true
+
+quality_memory_change:
+  scope: mission_groundwork_deterministic_editorial_family
+  accepted_rule: >-
+    Mission GroundWork can sustain a coherent editorial family across materially
+    different layouts when each artifact preserves grounded community context,
+    spacious hierarchy, one recognition problem, real source provenance, explicit
+    non-client boundaries, and the green-stone-slate-clay palette without falling
+    back to dashboard cards or repeated templates.
