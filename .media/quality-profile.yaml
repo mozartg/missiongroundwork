@@ -1,0 +1,44 @@
+schema_version: 1
+process_id: MCLP-001
+project_id: mission-groundwork
+quality_tier: standard_canary
+accepted_patterns:
+  - one_primary_idea_per_frame
+  - clear_separation_between_photo_and_type_regions
+  - spacious_hierarchy
+  - strong_problem_recognition_language
+  - complete_legible_cta
+  - mobile_legibility_and_safe_margins
+  - visible_source_attribution_and_context_boundary
+  - project_palette_and_voice
+  - structured_job_and_reproducible_render
+rejected_patterns:
+  - dashboard_card_media
+  - generic_clip_art_avatar
+  - excessive_text
+  - text_photo_collision
+  - clipped_cta
+  - low_contrast_body_or_credit
+  - crowded_hierarchy
+  - unsupported_client_or_outcome_claim
+  - generic_corporate_stock_treatment
+  - technical_pass_used_as_creative_approval
+critical_global_rejection:
+  name: Your Pay 12.5 330 dashboard asset
+  rule: never_reuse_present_as_approved_or_use_as_template
+promotion_gate:
+  consecutive_distinct_passes: 3
+  structured_regeneration_required: true
+  cold_start_reproduction_required: true
+  final_project_owner_review_required: true
+current_artifact:
+  artifact_id: IMG-004
+  revision: 2
+  scores:
+    technical: 5.0
+    creative: 4.1
+    narrative: 4.2
+    platform: 4.2
+    mission_or_business: 4.0
+  state: PASS_CREATIVE_PROVISIONAL
+  publishing_authorized: false
