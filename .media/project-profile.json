@@ -1,0 +1,10 @@
+{
+  "process_id": "MCLP-001",
+  "project": "Mission GroundWork",
+  "audience": ["nonprofit leaders", "program teams", "funders"],
+  "purpose": ["education", "demand creation", "service explanation"],
+  "product_truth_owner": "this repository",
+  "approved_claims_source": "this repository",
+  "visual_lane": "adult editorial animation for AI/nonprofit workflow stories",
+  "public_publish_requires_approval": true
+}
