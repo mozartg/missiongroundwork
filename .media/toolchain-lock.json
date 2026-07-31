@@ -1,0 +1,9 @@
+{
+  "process_id": "MCLP-001",
+  "image": ["Pillow", "OpenCV"],
+  "audio": ["SciPy", "FFmpeg"],
+  "video": ["OpenCV", "FFmpeg"],
+  "staging": ["Google Drive"],
+  "registry": ["GitHub"],
+  "state": "VERIFIED_COMPLETE"
+}
