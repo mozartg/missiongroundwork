@@ -1,0 +1,7 @@
+{
+  "initial_calibration": 65,
+  "required": ["scene-first narrative", "restrained palette", "clear focal hierarchy", "human judgment visible when AI is shown"],
+  "reject": ["Your Pay / 12.5 card", "provider stamps", "unsupported claims", "generic slideshow", "false capability facts", "gaudy dashboard graphics"],
+  "promotion_rule": "three consecutive distinct independent passes",
+  "public_publish_requires_approval": true
+}
