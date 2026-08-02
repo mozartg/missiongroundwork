@@ -1,0 +1,43 @@
+name: Social Scheduler
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Validate without publishing'
+        type: boolean
+        default: true
+permissions:
+  contents: write
+concurrency:
+  group: social-scheduler
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Process due posts
+        working-directory: tools/social-scheduler
+        env:
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_AUTHOR_URN: ${{ secrets.LINKEDIN_AUTHOR_URN }}
+          META_PAGE_ACCESS_TOKEN: ${{ secrets.META_PAGE_ACCESS_TOKEN }}
+          META_PAGE_ID: ${{ secrets.META_PAGE_ID }}
+          INSTAGRAM_BUSINESS_ID: ${{ secrets.INSTAGRAM_BUSINESS_ID }}
+          BUFFER_ACCESS_TOKEN: ${{ secrets.BUFFER_ACCESS_TOKEN }}
+          BUFFER_PROFILE_ID: ${{ secrets.BUFFER_PROFILE_ID }}
+        run: node scheduler.mjs --queue ../../content/social-queue.json --state ../../content/social-state.json
+      - name: Commit receipts
+        if: github.event_name != 'workflow_dispatch' || inputs.dry_run == false
+        run: |
+          git config user.name "missiongroundwork-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add content/social-state.json
+          git diff --cached --quiet || git commit -m "chore: update social publishing receipts"
+          git push
