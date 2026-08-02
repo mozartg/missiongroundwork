@@ -1,0 +1,1 @@
+{"name":"missiongroundwork-social-scheduler","private":true,"type":"module","scripts":{"schedule":"node scheduler.mjs","dry-run":"node scheduler.mjs --dry-run","import":"node import-csv.mjs"},"engines":{"node":">=20"}}
