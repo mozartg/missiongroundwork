@@ -1,1 +1,9 @@
-{"published":{},"failed":{},"last_run":null}
+{
+  "published": {},
+  "failed": {},
+  "last_run": {
+    "at": "2026-08-02T07:24:38.612Z",
+    "due_processed": 0,
+    "dry_run": false
+  }
+}
