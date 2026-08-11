@@ -1,0 +1,154 @@
+name: Mission GroundWork media trials
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/mission-groundwork-media-trials.yml"
+      - "media/high-quality/**"
+
+permissions:
+  contents: read
+
+jobs:
+  cloud-media-and-local-kit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install media tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg curl fonts-dejavu-core
+          python -m pip install --disable-pip-version-check edge-tts==7.2.8
+
+      - name: Acquire licensed inputs
+        working-directory: media/high-quality
+        run: |
+          mkdir -p build
+          cd build
+          curl --fail --location --retry 5 --retry-all-errors             "https://videos.pexels.com/video-files/12894352/12894352-uhd_2160_3840_24fps.mp4"             --output source.mp4
+          curl --fail --location --retry 5 --retry-all-errors             "https://upload.wikimedia.org/wikipedia/commons/5/5f/Soft_Corporate_by_MusicLFiles.ogg"             --output music.ogg
+
+      - name: Generate cloud narration and subtitles
+        working-directory: media/high-quality/build
+        env:
+          SCRIPT: >-
+            Busy teams do not usually need another plan. They need clarity.
+            Who owns the work? What happens next? Where is support missing?
+            Mission GroundWork helps nonprofit leaders turn activity into
+            accountable action, so the team can move forward on solid ground.
+        run: |
+          edge-tts             --voice en-US-AndrewNeural             --rate=-8%             --pitch=-2Hz             --text "$SCRIPT"             --write-media narration-cloud.mp3             --write-subtitles narration-cloud.srt
+
+      - name: Create reusable visual mezzanine
+        working-directory: media/high-quality/build
+        run: |
+          ffmpeg -hide_banner -y -stream_loop -1 -i source.mp4 -t 22             -vf "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,eq=contrast=1.04:saturation=0.82:brightness=-0.025,fps=30"             -an -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -movflags +faststart             visual-master.mp4
+
+      - name: Assemble cloud-only candidate
+        working-directory: media/high-quality/build
+        run: |
+          ffmpeg -hide_banner -y             -i visual-master.mp4             -i narration-cloud.mp3             -stream_loop -1 -i music.ogg             -filter_complex "          [0:v]drawbox=x=0:y=0:w=iw:h=260:color=0x071C2C@0.78:t=fill,          drawbox=x=0:y=1500:w=iw:h=420:color=0x071C2C@0.70:t=fill,          drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='MISSION GROUNDWORK':fontcolor=0xF7E6B0:fontsize=46:x=90:y=88,          drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text='CLARITY INTO ACCOUNTABLE ACTION':fontcolor=white:fontsize=28:x=90:y=164,          drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='Clarity starts with ownership.':fontcolor=white:fontsize=48:x=(w-text_w)/2:y=1635:box=1:boxcolor=0x071C2C@0.88:boxborderw=24:enable='between(t,0.5,5.3)',          drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='Accountable action. Not activity.':fontcolor=white:fontsize=44:x=(w-text_w)/2:y=1635:box=1:boxcolor=0x071C2C@0.88:boxborderw=24:enable='between(t,5.3,11.2)',          drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='Move forward on solid ground.':fontcolor=white:fontsize=46:x=(w-text_w)/2:y=1635:box=1:boxcolor=0x071C2C@0.88:boxborderw=24:enable='between(t,11.2,17.5)'[v];          [1:a]loudnorm=I=-16:LRA=7:TP=-1.5,asplit=2[voice_sc][voice_mix];          [2:a]volume=0.16[music];          [music][voice_sc]sidechaincompress=threshold=0.035:ratio=10:attack=20:release=300[ducked];          [voice_mix][ducked]amix=inputs=2:duration=first:dropout_transition=2,          loudnorm=I=-14:LRA=8:TP=-1.0[a]"             -map "[v]" -map "[a]" -shortest             -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p             -c:a aac -b:a 192k -ar 48000 -movflags +faststart             mission-groundwork-cloud-only.mp4
+
+      - name: Verify and write receipts
+        working-directory: media/high-quality/build
+        run: |
+          ffprobe -v error -show_format -show_streams -of json             mission-groundwork-cloud-only.mp4 > ffprobe-cloud-only.json
+          ffmpeg -hide_banner -i mission-groundwork-cloud-only.mp4             -af loudnorm=I=-14:LRA=8:TP=-1:print_format=json -f null -             2> loudness-cloud-only.log
+          ffmpeg -hide_banner -i mission-groundwork-cloud-only.mp4             -vf "blackdetect=d=1.2:pix_th=0.02" -an -f null -             2> blackdetect-cloud-only.log
+          sha256sum mission-groundwork-cloud-only.mp4 visual-master.mp4             narration-cloud.mp3 narration-cloud.srt music.ogg > SHA256SUMS
+          cat > ATTRIBUTION.md <<'EOF'
+          # Attribution and provenance
+
+          - Footage: “Two Businesspeople Working Together at a Computer in an Office” by Mizuno K, Pexels.
+            Source: https://www.pexels.com/video/two-businesspeople-working-together-at-a-computer-in-an-office-12894352/
+            License: https://www.pexels.com/license/
+            Modified by cropping, grading, trimming, and overlaying titles. No endorsement is implied.
+          - Music: “Soft Corporate” by MusicLFiles.
+            Source: https://commons.wikimedia.org/wiki/File:Soft_Corporate_by_MusicLFiles.ogg
+            License: CC BY 4.0 — https://creativecommons.org/licenses/by/4.0/
+            Modified by trimming, level adjustment, ducking, and mixing.
+          - Cloud narration: Microsoft Edge online text-to-speech through edge-tts 7.2.8, voice en-US-AndrewNeural.
+            Tool: https://github.com/rany2/edge-tts
+          - Assembly and verification: FFmpeg/ffprobe.
+          - Publishing is disabled. Human creative review is required.
+          EOF
+          python - <<'PY'
+          import json, pathlib, subprocess
+          p = pathlib.Path(".")
+          def probe(name):
+              return json.loads(subprocess.check_output([
+                  "ffprobe", "-v", "error", "-show_entries",
+                  "format=duration:stream=index,codec_name,codec_type,width,height,pix_fmt,r_frame_rate,sample_rate,channels",
+                  "-of", "json", name
+              ]))
+          receipt = {
+              "candidate": "A-cloud-only",
+              "qa_is_not_creative_approval": True,
+              "publishing_authorized": False,
+              "human_review_required": True,
+              "script_words": 38,
+              "media": probe("mission-groundwork-cloud-only.mp4"),
+              "sources": {
+                  "footage": "Pexels 12894352 / Mizuno K",
+                  "music": "Soft Corporate / MusicLFiles / CC BY 4.0",
+                  "voice": "edge-tts 7.2.8 / en-US-AndrewNeural"
+              }
+          }
+          p.joinpath("receipt-cloud-only.json").write_text(json.dumps(receipt, indent=2) + "\n")
+          PY
+
+      - name: Bootstrap portable local-only voice runtime
+        working-directory: media/high-quality/build
+        run: |
+          mkdir -p local-voice-kit/model
+          curl --fail --location --retry 5 --retry-all-errors             "https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_x86_64.tar.gz"             --output piper.tar.gz
+          tar -xzf piper.tar.gz -C local-voice-kit
+          curl --fail --location --retry 5 --retry-all-errors             "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/joe/medium/en_US-joe-medium.onnx?download=true"             --output local-voice-kit/model/en_US-joe-medium.onnx
+          curl --fail --location --retry 5 --retry-all-errors             "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/joe/medium/en_US-joe-medium.onnx.json?download=true"             --output local-voice-kit/model/en_US-joe-medium.onnx.json
+          cat > local-voice-kit/README.md <<'EOF'
+          # Portable local voice kit
+
+          Runtime: Piper 2023.11.14-2.
+          Voice: en_US-joe-medium, 22,050 Hz.
+          Model card: https://huggingface.co/rhasspy/piper-voices/blob/main/en/en_US/joe/medium/MODEL_CARD
+          Dataset license reported by the model card: CC0.
+          Runtime invocation:
+            echo "Text" | ./piper/piper --model model/en_US-joe-medium.onnx --output_file narration.wav
+          The runtime performs synthesis locally and does not call a media-generation API.
+          EOF
+          tar -czf mission-groundwork-local-voice-kit.tar.gz local-voice-kit
+
+      - name: Package cloud inputs and candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: mission-groundwork-cloud-package
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            media/high-quality/build/mission-groundwork-cloud-only.mp4
+            media/high-quality/build/visual-master.mp4
+            media/high-quality/build/narration-cloud.mp3
+            media/high-quality/build/narration-cloud.srt
+            media/high-quality/build/music.ogg
+            media/high-quality/build/ATTRIBUTION.md
+            media/high-quality/build/receipt-cloud-only.json
+            media/high-quality/build/ffprobe-cloud-only.json
+            media/high-quality/build/loudness-cloud-only.log
+            media/high-quality/build/blackdetect-cloud-only.log
+            media/high-quality/build/SHA256SUMS
+
+      - name: Package portable local voice kit
+        uses: actions/upload-artifact@v4
+        with:
+          name: mission-groundwork-local-voice-kit
+          retention-days: 7
+          if-no-files-found: error
+          compression-level: 0
+          path: media/high-quality/build/mission-groundwork-local-voice-kit.tar.gz
