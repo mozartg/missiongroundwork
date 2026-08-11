@@ -1,7 +1,7 @@
 name: Social Scheduler
 on:
-  schedule:
-    - cron: '*/15 * * * *'
+  # Intentionally manual while no approved publishing queue exists.
+  # Re-enable a schedule only when queue admission and live credentials are verified.
   workflow_dispatch:
     inputs:
       dry_run:
